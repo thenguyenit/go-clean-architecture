@@ -5,30 +5,36 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/thenguyenit/go-clean-architecture/connections"
 	"github.com/thenguyenit/go-clean-architecture/models"
 	"github.com/thenguyenit/go-clean-architecture/user"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
+const USER_COLLECTION = "user"
+
 type repo struct {
-	DBConn         *mongo.Database
-	CollectionName string
+	dbConf models.DatabaseConf
 }
 
-func NewUserRepository(dbConn *mongo.Database) user.Repository {
-	return &repo{dbConn, "user"}
+func NewUserRepository(dbConf models.DatabaseConf) user.Repository {
+	return &repo{dbConf}
 }
 
-func (r *repo) Fetch() ([]*models.User, error) {
-	collection := r.DBConn.Collection(r.CollectionName)
-	ctx := context.Background()
-	cur, err := collection.Find(ctx, bson.D{})
+func (r *repo) Fetch(ctx context.Context, cursor string, number int64) ([]*models.User, string, error) {
+
+	//Make a connection to database
+	dbClient, _ := connections.GetMongoInstance(ctx, r.dbConf)
+
+	//Query
+	collection := dbClient.Database(r.dbConf.DBName).Collection(USER_COLLECTION)
+	cur, err := collection.Find(context.Background(), bson.D{})
+	defer cur.Close(context.Background())
+	defer dbClient.Disconnect(context.Background())
 
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer cur.Close(ctx)
 
 	result := make([]*models.User, 0)
 	for cur.Next(ctx) {
@@ -43,9 +49,9 @@ func (r *repo) Fetch() ([]*models.User, error) {
 	}
 
 	if err := cur.Err(); err != nil {
-		return nil, err
+		return nil, "", err
 		log.Fatal(err)
 	}
 
-	return result, nil
+	return result, "", nil
 }

@@ -26,8 +26,10 @@ func (u *UserHandler) FetchUser(c echo.Context) error {
 	numS := c.QueryParam("num")
 	num, _ := strconv.Atoi(numS)
 	cursor := c.QueryParam("cursor")
+
 	ctx := c.Request().Context()
-	listAr, err := u.UserUsecase.Fetch()
+
+	listAr, _, err := u.UserUsecase.Fetch(ctx, cursor, int64(num))
 
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, ResponseError{Message: err.Error()})
