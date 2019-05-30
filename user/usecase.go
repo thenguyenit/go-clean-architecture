@@ -7,5 +7,6 @@ import (
 )
 
 type Usecase interface {
-	Fetch(ctx context.Context, cursor string, number int64) ([]*models.User, string, error)
+	Fetch(ctx context.Context, page int64, number int64) ([]*models.User, string, error)
+	Insert(ctx context.Context, user *models.User) error
 }

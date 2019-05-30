@@ -8,23 +8,27 @@ import (
 )
 
 type userUsecase struct {
-	config   models.UsecaseConf
 	userRepo user.Repository
 }
 
-func NewUserUseCase(conf models.UsecaseConf, ur user.Repository) user.Usecase {
-	return &userUsecase{config: conf, userRepo: ur}
+func NewUserUseCase(ur user.Repository) user.Usecase {
+	return &userUsecase{userRepo: ur}
 }
 
-func (u *userUsecase) Fetch(ctx context.Context, cursor string, number int64) ([]*models.User, string, error) {
+func (u *userUsecase) Fetch(ctx context.Context, page int64, number int64) ([]*models.User, string, error) {
 	if number == 0 {
 		number = 10
 	}
 
-	listItem, cursor, err := u.userRepo.Fetch(ctx, cursor, number)
+	listItem, err := u.userRepo.Fetch(ctx, page, number)
 
 	if err != nil {
 		return nil, "", err
 	}
 	return listItem, "", nil
+}
+
+func (u *userUsecase) Insert(ctx context.Context, user *models.User) error {
+	err := u.userRepo.Insert(ctx, user)
+	return err
 }

@@ -5,53 +5,64 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/thenguyenit/go-clean-architecture/connections"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+
 	"github.com/thenguyenit/go-clean-architecture/models"
 	"github.com/thenguyenit/go-clean-architecture/user"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 const USER_COLLECTION = "user"
 
 type repo struct {
-	dbConf models.DatabaseConf
+	dbConn *mongo.Database
 }
 
-func NewUserRepository(dbConf models.DatabaseConf) user.Repository {
-	return &repo{dbConf}
+func NewUserRepository(dbConn *mongo.Database) user.Repository {
+	return &repo{dbConn}
 }
 
-func (r *repo) Fetch(ctx context.Context, cursor string, number int64) ([]*models.User, string, error) {
-
-	//Make a connection to database
-	dbClient, _ := connections.GetMongoInstance(ctx, r.dbConf)
+func (r *repo) Fetch(ctx context.Context, page int64, limit int64) ([]*models.User, error) {
 
 	//Query
-	collection := dbClient.Database(r.dbConf.DBName).Collection(USER_COLLECTION)
-	cur, err := collection.Find(context.Background(), bson.D{})
-	defer cur.Close(context.Background())
-	defer dbClient.Disconnect(context.Background())
+	collection := r.dbConn.Collection(USER_COLLECTION)
+	skip := (page - 1) * limit
+	findOptions := &options.FindOptions{Limit: &limit, Skip: &skip}
+
+	cur, err := collection.Find(context.TODO(), bson.D{}, findOptions)
+	defer cur.Close(context.TODO())
 
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	result := make([]*models.User, 0)
-	for cur.Next(ctx) {
+	for cur.Next(context.TODO()) {
 		var user models.User
 		err := cur.Decode(&user)
 		if err != nil {
 			log.Fatal(err)
 		}
-		// do something with result....
-		fmt.Println(result)
 		result = append(result, &user)
 	}
 
 	if err := cur.Err(); err != nil {
-		return nil, "", err
-		log.Fatal(err)
+		return nil, err
 	}
 
-	return result, "", nil
+	return result, nil
+}
+
+func (r *repo) Insert(ctx context.Context, user *models.User) error {
+	insertResult, err := r.dbConn.Collection(USER_COLLECTION).InsertOne(ctx, user)
+	if err != nil {
+		return err
+	}
+
+	user.ID = insertResult.InsertedID.(primitive.ObjectID)
+
+	fmt.Println("Inserted a single document: ", insertResult.InsertedID)
+	return nil
 }
