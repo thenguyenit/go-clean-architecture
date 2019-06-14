@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"log"
 
-	"go.mongodb.org/mongo-driver/bson/primitive"
-
 	"github.com/thenguyenit/go-clean-architecture/models"
 	"github.com/thenguyenit/go-clean-architecture/user"
 	"go.mongodb.org/mongo-driver/bson"
@@ -16,20 +14,22 @@ import (
 
 const USER_COLLECTION = "user"
 
-type repo struct {
+type userrepo struct {
 	dbConn *mongo.Database
 }
 
-func NewUserRepository(dbConn *mongo.Database) user.Repository {
-	return &repo{dbConn}
+func NewUserRepository(dbConn *mongo.Database) user.UserRepository {
+	return &userrepo{dbConn}
 }
 
-func (r *repo) Fetch(ctx context.Context, page int64, limit int64) ([]*models.User, error) {
+func (r *userrepo) Fetch(ctx context.Context, page int, limit int) ([]*models.User, error) {
 
 	//Query
 	collection := r.dbConn.Collection(USER_COLLECTION)
-	skip := (page - 1) * limit
-	findOptions := &options.FindOptions{Limit: &limit, Skip: &skip}
+	lm := int64(limit)
+	skip := (int64(page) - 1) * lm
+
+	findOptions := &options.FindOptions{Limit: &lm, Skip: &skip}
 
 	cur, err := collection.Find(context.TODO(), bson.D{}, findOptions)
 	defer cur.Close(context.TODO())
@@ -55,13 +55,13 @@ func (r *repo) Fetch(ctx context.Context, page int64, limit int64) ([]*models.Us
 	return result, nil
 }
 
-func (r *repo) Insert(ctx context.Context, user *models.User) error {
+func (r *userrepo) Insert(ctx context.Context, user *models.User) error {
 	insertResult, err := r.dbConn.Collection(USER_COLLECTION).InsertOne(ctx, user)
 	if err != nil {
 		return err
 	}
 
-	user.ID = insertResult.InsertedID.(primitive.ObjectID)
+	// user.ID = insertResult.InsertedID.(primitive.ObjectID)
 
 	fmt.Println("Inserted a single document: ", insertResult.InsertedID)
 	return nil

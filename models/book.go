@@ -1,13 +1,17 @@
 package models
 
-import "time"
+import (
+	"time"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
+)
 
 //Book represent the book entity
 type Book struct {
-	ID        int64     `json:"id"`
-	Title     string    `json:"title" validate:"required"`
-	Content   string    `json:"content" validate:"required"`
-	Author    Author    `json:"author"`
-	UpdatedAt time.Time `json:"updated_at"`
-	CreatedAt time.Time `json:"created_at"`
+	ID        primitive.ObjectID `json:"id" bson:"_id,omitempty"`
+	Title     string             `json:"title" validate:"required"`
+	Content   string             `json:"content" validate:"required"`
+	Author    Author             `json:"author"`
+	UpdatedAt time.Time          `json:"updated_at"`
+	CreatedAt time.Time          `json:"created_at"`
 }

@@ -16,14 +16,16 @@ type ResponseError struct {
 }
 
 type UserHandler struct {
-	UserUsecase user.Usecase
+	UserUsecase user.UserUsecase
 }
 
-func NewUserHandler(e *echo.Echo, us user.Usecase) {
+func NewUserHandler(e *echo.Echo, us user.UserUsecase) *UserHandler {
 	handler := &UserHandler{us}
 
 	e.GET("/users", handler.FetchUser)
 	e.POST("/users", handler.InsertUser)
+
+	return handler
 }
 
 func (u *UserHandler) FetchUser(c echo.Context) error {
@@ -37,12 +39,12 @@ func (u *UserHandler) FetchUser(c echo.Context) error {
 
 	ctx := c.Request().Context()
 
-	listAr, _, err := u.UserUsecase.Fetch(ctx, int64(page), int64(num))
+	listAr, err := u.UserUsecase.Fetch(ctx, page, num)
 
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, ResponseError{Message: err.Error()})
 	}
-	// c.Response().Header().Set(`X-Cursor`, nextCursor)
+
 	return c.JSON(http.StatusOK, listAr)
 }
 
